@@ -22,30 +22,45 @@ ALIAS_BACKUP="zmbackup -f -al"
 
 RET=0
 
+function runAsRoot() {
+  $@ || RET=1
+}
+
+function runAsZimbra() {
+  /sbin/runuser -u zimbra -- "$@" || RET=1
+}
+
+
 echo "$(date +%D) - Starting Backup"
+
+echo "Unmounting remote partition"
+runAsRoot ${UMOUNT_COMMAND}
 echo "Mounting remote partition"
-${MOUNT_COMMAND} || RET=1
+runAsRoot "${MOUNT_COMMAND}"
+
 echo "Rotating old backups"
-su ${ZIMBRA} -c "${BACKUP_ROTATION}" || RET=1
+runAsZimbra "${BACKUP_ROTATION}"
+
 echo "Backup Aliases"
-su ${ZIMBRA} -c "${ALIAS_BACKUP}" || RET=1
+runAsZimbra "${ALIAS_BACKUP}"
+
 echo "Backup Distribution lists"
-su ${ZIMBRA} -c "${DISTRIBUTION_LIST_BACKUP}" || RET=1
+runAsZimbra ${DISTRIBUTION_LIST_BACKUP}
 
 
 case ${TODAY} in
   [1-6])
     echo "Performing incremental backup"
-    su ${ZIMBRA} -c "${INCREMENTAL_COMMAND}" || RET=1
+    runAsZimbra ${INCREMENTAL_COMMAND}
   ;;
   "7")
     echo "Performing full backup"
-    su ${ZIMBRA} -c "${FULL_COMMAND}" || RET=1
+    runAsZimbra ${FULL_COMMAND}
   ;;
 esac
 
 echo "Unmounting remote partition"
-${UMOUNT_COMMAND} || RET=1
+runAsRoot ${UMOUNT_COMMAND}
 
 if [ ${RET} == 1 ]; then
   echo "The backup process entered an exception. Please refer to the log"
