@@ -5,7 +5,7 @@ After=zmBackup_email@%n.service
 
 [Service]
 Type=simple
-ExecStart=/usr/local/bin/zmbackup-scheduler.sh
+ExecStart=/usr/local/bin/zmbackup_scheduler.sh
 ExecStopPost=/bin/systemctl start --no-block zmBackup_email@%n.service
 Nice=19
 
